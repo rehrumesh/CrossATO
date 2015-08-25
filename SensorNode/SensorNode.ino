@@ -5,7 +5,7 @@
 
 #define MAX_NODE_ID 25
 
-#define CCA_REGISTER 09
+byte CCA_REG = 9;
 
 
 struct init_request{
@@ -15,12 +15,21 @@ struct init_request{
 struct init_response{
 	byte mothermote_id;
 	byte sensornode_id;
+	byte old_id;
 	int wakeup_delay;
+};
+
+struct data_packet{
+	byte sensornode_id;
+	int data;
 };
 
 
 static byte sensornode_id;
-static init_request request;
+static init_request init_req;
+static init_response init_res;
+static int wakeup_delay;
+
 bool isInitCompleted;
 byte cca_reg_val;
 
@@ -32,8 +41,8 @@ void setup(){
 
 	Mirf.spi = &MirfHardwareSpi85;	  
 	Mirf.init();
-	Mirf.setRADDR((byte *) "cross");
-	Mirf.payload = sizeof(request);
+	Mirf.setTADDR((byte *) "cross");
+	Mirf.payload = sizeof(init_req);
 	Mirf.channel = 50;
 	Mirf.config();
 }
@@ -44,17 +53,33 @@ void loop(){
 	}else{
 
 	}
+
+	delay(wakeup_delay);
 }
 
 void initReq(){
+	init_req.sensornode_id = sensornode_id;
+	Mirf.send((byte *) &init_req);
+	while(Mirf.isSending()){}
 
+	Mirf.setRADDR((byte *) "cross");
+	Mirf.payload = sizeof(init_response);
+	
+	do{
+	    while(!Mirf.dataReady());
+	    Mirf.getData((byte *) &init_res);
+	} while (init_res.old_id != sensornode_id);
+
+	sensornode_id = init_res.sensornode_id;
+	wakeup_delay = init_res.wakeup_delay;
+	isInitCompleted = true;
 }
 
 bool isChannelClear(){
 	//set receive mode
 	while(Mirf.isSending());
 
-	Mirf.readRegister(CCA_REGISTER, &cca_reg_val, sizeof(cca_reg_val););
+	Mirf.readRegister(CCA_REG, &cca_reg_val, sizeof(cca_reg_val));
 	// true if clear
 	return (cca_reg_val & 01) == 0;
 }

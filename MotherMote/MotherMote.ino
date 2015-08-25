@@ -17,7 +17,8 @@ VCC -> 3V3
 
 #define MAX_NODE_LIMIT 25
 #define MOTHERMOTE_ID 1
-#define CCA_REGISTER 09
+
+byte CCA_REG = 9;
 
 struct init_request{
 	byte sensornode_id;	// if sensornode_id > MAX_NODE_LIMIT it is a new node
@@ -86,7 +87,7 @@ bool isChannelClear(){
 	//set receive mode
 	while(Mirf.isSending());
 
-	Mirf.readRegister(CCA_REGISTER, &cca_reg_val, sizeof(cca_reg_val););
+	Mirf.readRegister(CCA_REG, &cca_reg_val, sizeof(cca_reg_val););
 	// true if clear
 	return (cca_reg_val & 01) == 0;
 }
