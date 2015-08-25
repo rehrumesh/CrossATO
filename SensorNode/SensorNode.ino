@@ -36,6 +36,9 @@ byte cca_reg_val;
 void setup(){
 	isInitCompleted = false;
 	sensornode_id = random(MAX_NODE_ID) + MAX_NODE_ID;
+	wakeup_delay = 100;	//default sleep time
+
+
 	Mirf.cePin = PB4;
 	Mirf.csnPin = PB3;
 
@@ -51,7 +54,15 @@ void loop(){
 	if(!isInitCompleted){
 		initReq();
 	}else{
+		Mirf.setTADDR((byte *) "cross");
+		Mirf.payload = sizeof(data_packet);
 
+		data_packet dPacket;
+		dPacket.sensornode_id = sensornode_id;
+		dPacket.data = 3456;
+
+		Mirf.send((byte *) &dPacket);
+		while(Mirf.isSending());
 	}
 
 	delay(wakeup_delay);
