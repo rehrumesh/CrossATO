@@ -9,6 +9,7 @@ byte CCA_REG = 9;
 
 
 struct init_request{
+	byte packet_type;
 	byte sensornode_id;	// if sensornode_id > MAX_NODE_ID it is a new node
 };
 
@@ -20,6 +21,7 @@ struct init_response{
 };
 
 struct data_packet{
+	byte packet_type;
 	byte sensornode_id;
 	int data;
 };
@@ -30,7 +32,7 @@ static init_request init_req;
 static init_response init_res;
 static int wakeup_delay;
 
-bool isInitCompleted;
+boolean isInitCompleted;
 byte cca_reg_val;
 
 void setup(){
@@ -86,7 +88,7 @@ void initReq(){
 	isInitCompleted = true;
 }
 
-bool isChannelClear(){
+boolean isChannelClear(){
 	//set receive mode
 	while(Mirf.isSending());
 
