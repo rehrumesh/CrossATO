@@ -72,16 +72,37 @@ void setup(){
 }
 
 void loop(){
+        Serial.println("--------------------------------");
+	Serial.println("Listening");
 	static packet_struct packet;
 	static packet_struct response;
-	while(!Mirf.dataReady());
+	while(!Mirf.dataReady()){
+          //Serial.println(isChannelClear());
+          //delay(10);
+        }
 
 	if(Mirf.dataReady()){
 		// use a implementation specific byte to determine diference between control packet and a data packet
 		Serial.println("Packet received");
 		//byte packet_type = stripPacket();
 		Mirf.getData((byte *) &packet);
-		Serial.println("Packet type : " + packet.packet_type);
+		Serial.println("Packet type : ");
+		Serial.print(packet.packet_type);
+		Serial.println();
+		Serial.println("SensorID: ");
+		Serial.print(packet.sensornode_id);
+		Serial.println();
+		Serial.println("Old Id : ");
+		Serial.print(packet.old_id);
+		Serial.println();
+
+		Serial.println("Wakeup delay: ");
+		Serial.print(packet.wakeup_delay);
+		Serial.println();
+		Serial.println("Data : ");
+		Serial.print(packet.data);
+		Serial.println();
+
 		//Mirf.getData((byte *) &request);
 		if(packet.packet_type == 1){
 			if(packet.sensornode_id > MAX_NODE_LIMIT){
@@ -91,16 +112,38 @@ void loop(){
 				if(response.sensornode_id >= 0){
 					response.wakeup_delay = sensors[response.sensornode_id];
 				}
-				
+				response.data = -1;
+				response.packet_type = 2;
+//				Serial.println("---------------------");
+//				Serial.println("Packet type : ");
+//				Serial.print(response.packet_type);
+//				Serial.println();
+//				Serial.println("SensorID: ");
+//				Serial.print(response.sensornode_id);
+//				Serial.println();
+//				Serial.println("Old Id : ");
+//				Serial.print(response.old_id);
+//				Serial.println();
+//
+//				Serial.println("Wakeup delay: ");
+//				Serial.print(response.wakeup_delay);
+//				Serial.println();
+//				Serial.println("Data : ");
+//				Serial.print(response.data);
+//				Serial.println();
 				Mirf.setTADDR((byte *)"cross");
 				while(!isChannelClear());
+				Serial.println("Start sending response");
 	                        Mirf.send((byte *) &response);
+	                        while(Mirf.isSending());
+	                        Serial.println("Response sent");
 			}
 		}else if(packet.packet_type = 2){
 			Serial.println("Received from : "+ packet.sensornode_id);
 			Serial.println("Data : " + packet.data);
 		}
 	}
+	delay(20);
 
 }
 
@@ -115,12 +158,15 @@ byte generateSensorNodeId(){
 }
 
 //CCA
-bool isChannelClear(){
+boolean isChannelClear(){
 	//set receive mode
 	while(Mirf.isSending());
 
 	Mirf.readRegister(CCA_REG, &cca_reg_val, sizeof(cca_reg_val));
-	// true if clear
+        Serial.print("CCA Reg Value : ");
+        Serial.print(cca_reg_val);
+        Serial.println();
+  	// true if clear
 	return (cca_reg_val & 01) == 0;
 }
 
