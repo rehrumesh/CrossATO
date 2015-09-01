@@ -5,9 +5,6 @@
 
 #define MAX_NODE_ID 25
 
-byte CCA_REG = 9;
-
-
 struct packet_struct{
 	byte packet_type;
 	byte sensornode_id;
@@ -24,13 +21,11 @@ static packet_struct init_res;
 static int wakeup_delay;
 
 boolean isInitCompleted;
-byte cca_reg_val;
 
 void setup(){
 	isInitCompleted = false;
 	sensornode_id = random(MAX_NODE_ID) + MAX_NODE_ID;
 	wakeup_delay = 200;	//default sleep time
-
 
 	Mirf.cePin = PB4;
 	Mirf.csnPin = PB3;
@@ -48,7 +43,6 @@ void loop(){
 	 	initReq();
 	}else{
 	 	Mirf.setTADDR((byte *) "cross");
-		
 
 	 	packet_struct dPacket;
 	 	dPacket.packet_type = 2;
@@ -77,38 +71,40 @@ void initReq(){
 	//while(!isChannelClear());
 	Mirf.send((byte *) &init_req);
 	while(Mirf.isSending()){}
-
+        Mirf.ceHi();
 	Mirf.setRADDR((byte *) "cross");
 	unsigned long time = millis();	
-	do{
-		
+	do{		
 		while(!Mirf.dataReady()){
-			if ((millis() - time) > 500) {
-        			break;
+			if ((millis() - time) > 1500) {
+        			goto loopbreak;
                         }
 		}
 		if(Mirf.dataReady()){
 			Mirf.getData((byte *) &init_res);
 		}
-		if ((millis() - time) > 500) {
-        		break;
-                }
-	} while (init_res.old_id != sensornode_id);
+		
+	} while (init_res.old_id != init_req.sensornode_id);
+	
+	loopbreak:
 
-        if(init_res.old_id != sensornode_id){
+        if(init_res.old_id != init_req.sensornode_id){
 		sensornode_id = init_res.sensornode_id;
 		wakeup_delay = init_res.wakeup_delay;
 		mothermote_id = init_res.mothermote_id;
 		isInitCompleted = true;
         }
+        //isInitCompleted = true;
 }
 
 boolean isChannelClear(){
-	//set receive mode
-	while(Mirf.isSending());
+	byte carrier_detect_reg_value = (byte) 0;        
+        //RX mode
+        Mirf.ceHi();
+        Mirf.readRegister(CD, &carrier_detect_reg_value, sizeof(carrier_detect_reg_value));
 
-	Mirf.readRegister(CCA_REG, &cca_reg_val, sizeof(cca_reg_val));
-	// true if clear
-	return (cca_reg_val & 01) == 0;
+        //Serial.print("carrier_detect_reg_value = ");
+        //Serial.println(carrier_detect_reg_value, BIN);
+        return carrier_detect_reg_value == 0;
 }
 

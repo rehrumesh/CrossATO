@@ -125,14 +125,14 @@ void loop(){
 //				Serial.print(response.old_id);
 //				Serial.println();
 //
-//				Serial.println("Wakeup delay: ");
-//				Serial.print(response.wakeup_delay);
-//				Serial.println();
+				Serial.println("Response Wakeup delay: ");
+				Serial.print(response.wakeup_delay);
+				Serial.println();
 //				Serial.println("Data : ");
 //				Serial.print(response.data);
 //				Serial.println();
 				Mirf.setTADDR((byte *)"cross");
-				while(!isChannelClear());
+//				while(!isChannelClear());
 				Serial.println("Start sending response");
 	                        Mirf.send((byte *) &response);
 	                        while(Mirf.isSending());
@@ -150,7 +150,7 @@ void loop(){
 byte generateSensorNodeId(){
 	for(int i=0; i<MAX_NODE_LIMIT; i++){
 	    if(sensors[i] == 0){
-	    	sensors[i] = (i+1)*100;
+	    	sensors[i] = (i+1)*1000;
 	    	return i;
 	    }
 	}
@@ -159,15 +159,14 @@ byte generateSensorNodeId(){
 
 //CCA
 boolean isChannelClear(){
-	//set receive mode
-	while(Mirf.isSending());
+	byte carrier_detect_reg_value = (byte) 0;        
+        //RX mode
+        Mirf.ceHi();
+        Mirf.readRegister(CD, &carrier_detect_reg_value, sizeof(carrier_detect_reg_value));
 
-	Mirf.readRegister(CCA_REG, &cca_reg_val, sizeof(cca_reg_val));
-        Serial.print("CCA Reg Value : ");
-        Serial.print(cca_reg_val);
-        Serial.println();
-  	// true if clear
-	return (cca_reg_val & 01) == 0;
+        //Serial.print("carrier_detect_reg_value = ");
+        //Serial.println(carrier_detect_reg_value, BIN);
+        return carrier_detect_reg_value == 0;
 }
 
 // byte stripPacket(){
