@@ -1,9 +1,23 @@
+// // Arduino ----------------------------------------
+//#include <SPI.h>
+//#include <Mirf.h>
+//#include <nRF24L01.h>
+//#include <MirfHardwareSpiDriver.h>
+// //--------------------------------------------------
+
+// ATtiny85-----------------------------------------
 #include <SPI85.h>
 #include <Mirf.h>
 #include <nRF24L01.h>
 #include <MirfHardwareSpi85Driver.h>
+//--------------------------------------------------
 
 #define MAX_NODE_ID 25
+
+//----------------
+//packet_type = 1   => 	init_request
+//packet_type = 2   =>  data_packet
+//----------------
 
 struct packet_struct{
 	byte packet_type;
@@ -14,87 +28,29 @@ struct packet_struct{
 	int data;
 };
 
-static byte sensornode_id;
-static byte mothermote_id;
-static packet_struct init_req;
-static packet_struct init_res;
-static int wakeup_delay;
-
-boolean isInitCompleted;
 
 void setup(){
-	isInitCompleted = false;
-	sensornode_id = random(MAX_NODE_ID) + MAX_NODE_ID;
-	wakeup_delay = 200;	//default sleep time
+	// //Arduino------------------------------
+	// Mirf.spi = &MirfHardwareSpi;
+	// Serial.begin(9600);
+	// //
 
+
+	//ATtiny85-----------------------------
 	Mirf.cePin = PB4;
 	Mirf.csnPin = PB3;
-
-	Mirf.spi = &MirfHardwareSpi85;	  
+	Mirf.spi = &MirfHardwareSpi85;		
+	//-------------------------------------
+	
 	Mirf.init();
 	Mirf.setTADDR((byte *) "cross");
 	Mirf.payload = sizeof(packet_struct);
 	Mirf.channel = 50;
-	Mirf.config();
+	Mirf.config();	
 }
 
 void loop(){
-	if(!isInitCompleted){
-	 	initReq();
-	}else{
-	 	Mirf.setTADDR((byte *) "cross");
-
-	 	packet_struct dPacket;
-	 	dPacket.packet_type = 2;
-	 	dPacket.sensornode_id = sensornode_id;
-	 	dPacket.mothermote_id = mothermote_id;
-	 	dPacket.old_id = 0;
-	 	dPacket.data = 3456;
-	 	dPacket.wakeup_delay = wakeup_delay;
-
-	 	Mirf.send((byte *) &dPacket);
-	 	while(Mirf.isSending());
-	 }
-
-	delay(wakeup_delay);
-
-}
-
-void initReq(){
-	init_req.sensornode_id = sensornode_id;
-	init_req.packet_type = 1;
-	init_req.old_id = 0;
-	init_req.mothermote_id = 0;
-	init_req.wakeup_delay = 100;
-	init_req.data = -1;
-
-	//while(!isChannelClear());
-	Mirf.send((byte *) &init_req);
-	while(Mirf.isSending()){}
-        Mirf.ceHi();
-	Mirf.setRADDR((byte *) "cross");
-	unsigned long time = millis();	
-	do{		
-		while(!Mirf.dataReady()){
-			if ((millis() - time) > 1500) {
-        			goto loopbreak;
-                        }
-		}
-		if(Mirf.dataReady()){
-			Mirf.getData((byte *) &init_res);
-		}
-		
-	} while (init_res.old_id != init_req.sensornode_id);
-	
-	loopbreak:
-
-        if(init_res.old_id != init_req.sensornode_id){
-		sensornode_id = init_res.sensornode_id;
-		wakeup_delay = init_res.wakeup_delay;
-		mothermote_id = init_res.mothermote_id;
-		isInitCompleted = true;
-        }
-        //isInitCompleted = true;
+	delay(1000);
 }
 
 boolean isChannelClear(){
