@@ -26,7 +26,8 @@
 
 //----------------
 //packet_type = 1   => 	init_request
-//packet_type = 2   =>  data_packet
+//packet_type = 2   =>  init_reply
+//packet_type = 3   =>  data_packet
 //----------------
 
 struct packet_struct{
@@ -38,6 +39,7 @@ struct packet_struct{
 	int data;
 };
 
+static packet_struct receivedPacket;
 
 void setup(){
 	//Arduino------------------------------
@@ -53,16 +55,40 @@ void setup(){
 	// //-------------------------------------
 	
 	Mirf.init();
-	Mirf.setTADDR((byte *) "cross");
+	Mirf.setRADDR((byte *) "cross");
 	Mirf.payload = sizeof(packet_struct);
-	Mirf.channel = 50;
+	Mirf.channel = 90;
 	Mirf.config();	
 }
 
 void loop(){
-	delay(1000);
+	static packet_struct reply;
+	// Mirf.flushRx();
+	// Mirf.flushTx();
+	Mirf.setRADDR((byte *) "cross");
+	while(!Mirf.dataReady()){}
+	if(Mirf.dataReady()){
+		Serial.println("Packet received...");
+		Mirf.getData((byte *) &receivedPacket);
+		Serial.print("Packet type: ");
+		Serial.println(receivedPacket.packet_type);
+		Serial.print("Packet data: ");
+		Serial.println(receivedPacket.data);
+		reply.mothermote_id = 2;
+		reply.packet_type = 2;
+		reply.wakeup_delay = 3500;
+		delay(100);
+		Mirf.setTADDR((byte *) "cross");
+		Mirf.send((byte *) &reply);
+		while(Mirf.isSending()){}
+		Serial.println("Packet reply sent");
+
+	}	
+	delay(100);
 }
 
+// 1: clear
+// 0: not clear
 boolean isChannelClear(){
 	byte carrier_detect_reg_value = (byte) 0;        
         //RX mode
@@ -74,3 +100,6 @@ boolean isChannelClear(){
         return carrier_detect_reg_value == 0;
 }
 
+int generateWakeUpDelay(){
+	return random(1000, 2000);
+}
