@@ -33,7 +33,6 @@
 struct packet_struct{
 	byte packet_type;
 	byte sensornode_id;
-	byte old_id;
 	byte mothermote_id;
 	int wakeup_delay;
 	int data;
@@ -74,14 +73,18 @@ void loop(){
 		Serial.println(receivedPacket.packet_type);
 		Serial.print("Packet data: ");
 		Serial.println(receivedPacket.data);
-		reply.mothermote_id = 2;
-		reply.packet_type = 2;
-		reply.wakeup_delay = 3500;
-		delay(100);
-		Mirf.setTADDR((byte *) "cross");
-		Mirf.send((byte *) &reply);
-		while(Mirf.isSending()){}
-		Serial.println("Packet reply sent");
+		if(receivedPacket.packet_type == 1){
+			reply.mothermote_id = 2;
+			reply.packet_type = 2;
+			reply.wakeup_delay = 3500;
+			reply.sensornode_id = receivedPacket.sensornode_id;
+			delay(100);
+			Mirf.setTADDR((byte *) "cross");
+			Mirf.send((byte *) &reply);
+			while(Mirf.isSending()){}
+			Serial.println("Packet reply sent");
+		}
+		
 
 	}	
 	delay(100);
