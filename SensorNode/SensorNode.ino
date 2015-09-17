@@ -13,7 +13,7 @@
 // //--------------------------------------------------
 
 #define MAX_NODE_ID 25
-#define SENSOR_ID 1
+#define SENSOR_ID 24
 //----------------
 //packet_type = 1   => 	init_request
 //packet_type = 2   =>  data_packet
@@ -92,7 +92,7 @@ void loop(){
 				Serial.println(reply.packet_type);
 				Serial.print("Packet data: ");
 				Serial.println(reply.data);
-				Serial.print("Packet data: ");
+				Serial.print("Packet wakeup delay: ");
 				Serial.println(reply.wakeup_delay);
 
 				wakeup_delay = reply.wakeup_delay;
@@ -111,9 +111,7 @@ void loop(){
 		Mirf.send((byte *) &data_packet);
 		while(Mirf.isSending()){};
 		Serial.println("Data Packet sent..");
-	}
-
-		
+	}		
 	delay(wakeup_delay);
 }
 

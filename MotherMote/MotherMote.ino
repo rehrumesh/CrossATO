@@ -23,6 +23,7 @@
 // //--------------------------------------------------
 
 #define MAX_NODE_ID 25
+#define MOTHERMOTE_ID 1
 
 //----------------
 //packet_type = 1   => 	init_request
@@ -39,6 +40,9 @@ struct packet_struct{
 };
 
 static packet_struct receivedPacket;
+int wakeup_delay_list[] = {503,617,683,757,787,823,863,911,971,1019,
+			   1069,1153,1193,1223,1297,1361,1399,1439,1481,1531,
+			   1597,1657,1697,1733,1801};
 
 void setup(){
 	//Arduino------------------------------
@@ -74,9 +78,9 @@ void loop(){
 		Serial.print("Packet data: ");
 		Serial.println(receivedPacket.data);
 		if(receivedPacket.packet_type == 1){
-			reply.mothermote_id = 2;
+			reply.mothermote_id = MOTHERMOTE_ID;
 			reply.packet_type = 2;
-			reply.wakeup_delay = 3500;
+			reply.wakeup_delay = generateWakeUpDelay(receivedPacket.sensornode_id);
 			reply.sensornode_id = receivedPacket.sensornode_id;
 			delay(100);
 			Mirf.setTADDR((byte *) "cross");
@@ -103,6 +107,6 @@ boolean isChannelClear(){
         return carrier_detect_reg_value == 0;
 }
 
-int generateWakeUpDelay(){
-	return random(1000, 2000);
+int generateWakeUpDelay(int sensornode_id){
+	return wakeup_delay_list[sensornode_id];
 }
