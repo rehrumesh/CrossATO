@@ -26,6 +26,7 @@
 #define MOTHERMOTE_ID 1
 
 //----------------
+//packet_type = 0   =>  mothermote beacon broadcast
 //packet_type = 1   => 	init_request
 //packet_type = 2   =>  init_reply
 //packet_type = 3   =>  data_packet
@@ -37,12 +38,13 @@ struct packet_struct{
 	byte mothermote_id;
 	int wakeup_delay;
 	int data;
+	unsigned long broadcastTime;
 };
 
 static packet_struct receivedPacket;
-int wakeup_delay_list[] = {503,617,683,757,787,823,863,911,971,1019,
-			   1069,1153,1193,1223,1297,1361,1399,1439,1481,1531,
-			   1597,1657,1697,1733,1801};
+int wakeup_delay_list[MAX_NODE_ID][2] = {{0,503},{0,617},{0,683},{0,757},{0,787},{0,823},{0,863},{0,911},{0,971},{0,1019},
+			   {0,1069},{0,1153},{0,1193},{0,1223},{0,1297},{0,1361},{0,1399},{0,1439},{0,1481},{0,1531},
+			   {0,1597},{0,1657},{0,1697},{0,1733},{0,1801}};
 
 void setup(){
 	//Arduino------------------------------
@@ -66,8 +68,6 @@ void setup(){
 
 void loop(){
 	static packet_struct reply;
-	// Mirf.flushRx();
-	// Mirf.flushTx();
 	Mirf.setRADDR((byte *) "cross");
 	while(!Mirf.dataReady()){}
 	if(Mirf.dataReady()){
@@ -87,6 +87,9 @@ void loop(){
 			Mirf.send((byte *) &reply);
 			while(Mirf.isSending()){}
 			Serial.println("Packet reply sent");
+		}else if(receivedPacket.packet_type == 3){
+			Serial.print("broadcast : ");
+			Serial.println(receivedPacket.broadcastTime);
 		}
 		
 
@@ -108,5 +111,11 @@ boolean isChannelClear(){
 }
 
 int generateWakeUpDelay(int sensornode_id){
-	return wakeup_delay_list[sensornode_id];
+	for(int i=0; i< MAX_NODE_ID; i++){
+		if(wakeup_delay_list[i][0] == 0){
+			wakeup_delay_list[i][0] = sensornode_id;
+			return wakeup_delay_list[i][1];
+		}
+	}
+	return -1;
 }

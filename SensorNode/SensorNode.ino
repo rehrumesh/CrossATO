@@ -15,8 +15,10 @@
 #define MAX_NODE_ID 25
 #define SENSOR_ID 24
 //----------------
+//packet_type = 0   =>  mothermote broadcast
 //packet_type = 1   => 	init_request
-//packet_type = 2   =>  data_packet
+//packet_type = 2   =>  init_reply
+//packet_type = 3   =>  data_packet
 //----------------
 
 struct packet_struct{
@@ -25,11 +27,14 @@ struct packet_struct{
 	byte mothermote_id;
 	int wakeup_delay;
 	int data;
+	unsigned long broadcastTime;
 };
 
 static packet_struct init_request;
 boolean isInitialized;
 int wakeup_delay;
+int sendingMessageNum;
+int assignedMotherMote;
 
 void setup(){
 	//Arduino------------------------------
@@ -55,64 +60,59 @@ void setup(){
 	init_request.sensornode_id = SENSOR_ID;
 	init_request.mothermote_id = 1;
 	init_request.wakeup_delay = 1000;
-	init_request.data = 1234;
+	init_request.data = 1;
 
 	isInitialized = false;
 	wakeup_delay = 1000;
+	sendingMessageNum = 1;
+	assignedMotherMote = -1;
 }
 
 void loop(){
 	static packet_struct reply;
 	static packet_struct data_packet;
+	unsigned long broadcastReceivedTime;
 
 	if(!isInitialized){
-		Mirf.setTADDR((byte *) "cross");
-		Mirf.send((byte *) &init_request);
-		while(Mirf.isSending()){};
-		Serial.println("Packet sent..");
-		Serial.print("Packet type: ");
-		Serial.println(init_request.packet_type);
-		Serial.print("Packet data: ");
-		Serial.println(init_request.data);
-		// Mirf.flushTx();
-		// Mirf.flushRx();
-		Mirf.setRADDR((byte *) "cross");
-		Mirf.ceHi();
-		unsigned long time = millis();
-		while(!Mirf.dataReady()){
-			if(millis() - time > 2500){
-				break;
-			}
-		}
+		while(!Mirf.dataReady());
 		if(Mirf.dataReady()){
-			Serial.println("Packet reply received");
 			Mirf.getData((byte *) &reply);
-			if(reply.packet_type == 2 && reply.sensornode_id == SENSOR_ID){
-				Serial.print("Packet type: ");
-				Serial.println(reply.packet_type);
-				Serial.print("Packet data: ");
-				Serial.println(reply.data);
-				Serial.print("Packet wakeup delay: ");
-				Serial.println(reply.wakeup_delay);
+			if(reply.packet_type == 0){
+				assignedMotherMote = reply.mothermote_id;
+				broadcastReceivedTime =  reply.broadcastTime;
 
-				wakeup_delay = reply.wakeup_delay;
-				isInitialized = true;
+				unsigned long broad_time = millis();
+
+				init_request.mothermote_id = assignedMotherMote;
+				init_request.sensornode_id = SENSOR_ID;
+				Mirf.setTADDR((byte *) "cross");
+				Mirf.send((byte *) &init_request);
+
+				while(Mirf.isSending());
+				Mirf.setRADDR((byte *) "cross");
+				while(!Mirf.dataReady());
+				if(Mirf.dataReady()){
+					Mirf.getData((byte *) &reply);
+					if(reply.packet_type == 2){
+						wakeup_delay = reply.wakeup_delay;
+						isInitialized = true;
+						Mirf.setTADDR((byte *) "cross");
+						// set the timing condition
+						while(true){							
+							data_packet.packet_type = 3;
+							data_packet.data = 3456;
+							data_packet.sensornode_id = SENSOR_ID;
+							data_packet.mothermote_id = assignedMotherMote;
+							Mirf.send((byte *) &data_packet);
+							delay(wakeup_delay);
+						}
+						isInitialized = false;
+					}
+				}
 			}
-		}else{
-			Serial.println("No Init reply received");
 		}
-	}else{
-		data_packet.packet_type = 3;
-		data_packet.sensornode_id = SENSOR_ID;
-		data_packet.mothermote_id = 1;
-		data_packet.data = 3152;
-
-		Mirf.setTADDR((byte *) "cross");
-		Mirf.send((byte *) &data_packet);
-		while(Mirf.isSending()){};
-		Serial.println("Data Packet sent..");
-	}		
-	delay(wakeup_delay);
+	}
+	
 }
 
 // 1: clear
