@@ -72,6 +72,7 @@ void loop(){
 	static packet_struct reply;
 	static packet_struct data_packet;
 	unsigned long broadcastReceivedTime;
+	unsigned long initializedTime;
 
 	if(!isInitialized){
 		while(!Mirf.dataReady());
@@ -95,22 +96,24 @@ void loop(){
 					Mirf.getData((byte *) &reply);
 					if(reply.packet_type == 2){
 						wakeup_delay = reply.wakeup_delay;
+						initializedTime = millis();
 						isInitialized = true;
-						Mirf.setTADDR((byte *) "cross");
-						// set the timing condition
-						while(true){							
-							data_packet.packet_type = 3;
-							data_packet.data = 3456;
-							data_packet.sensornode_id = SENSOR_ID;
-							data_packet.mothermote_id = assignedMotherMote;
-							Mirf.send((byte *) &data_packet);
-							delay(wakeup_delay);
-						}
-						isInitialized = false;
+												
 					}
 				}
 			}
 		}
+	}else{
+		Mirf.setTADDR((byte *) "cross");
+		while(millis() - initializedTime > 52000){							
+			data_packet.packet_type = 3;
+			data_packet.data = 3456;
+			data_packet.sensornode_id = SENSOR_ID;
+			data_packet.mothermote_id = assignedMotherMote;
+			Mirf.send((byte *) &data_packet);
+			delay(wakeup_delay);
+		}
+		isInitialized = false;
 	}
 	
 }
