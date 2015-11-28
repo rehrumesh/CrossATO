@@ -33,15 +33,12 @@
 //----------------
 
 struct packet_struct{
+	byte id;
 	byte packet_type;
-	byte sensornode_id;
-	byte mothermote_id;
-	int wakeup_delay;
 	int data;
-	unsigned long broadcastTime;
 };
 
-static packet_struct receivedPacket;
+static packet_struct packet;
 
 void setup(){
 	//Arduino------------------------------
@@ -64,34 +61,7 @@ void setup(){
 }
 
 void loop(){
-	static packet_struct reply;
-	Mirf.setRADDR((byte *) "cross");
-	while(!Mirf.dataReady()){}
-	if(Mirf.dataReady()){
-		Serial.println("Packet received...");
-		Mirf.getData((byte *) &receivedPacket);
-		Serial.print("Packet type: ");
-		Serial.println(receivedPacket.packet_type);
-		Serial.print("Packet data: ");
-		Serial.println(receivedPacket.data);
-		if(receivedPacket.packet_type == 1){
-			reply.mothermote_id = MOTHERMOTE_ID;
-			reply.packet_type = 2;
-			reply.wakeup_delay = generateWakeUpDelay(receivedPacket.sensornode_id);
-			reply.sensornode_id = receivedPacket.sensornode_id;
-			delay(100);
-			Mirf.setTADDR((byte *) "cross");
-			Mirf.send((byte *) &reply);
-			while(Mirf.isSending()){}
-			Serial.println("Packet reply sent");
-		}else if(receivedPacket.packet_type == 3){
-			Serial.print("broadcast : ");
-			Serial.println(receivedPacket.broadcastTime);
-		}
-		
-
-	}	
-	delay(100);
+	
 }
 
 // 1: clear
