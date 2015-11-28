@@ -42,9 +42,6 @@ struct packet_struct{
 };
 
 static packet_struct receivedPacket;
-int wakeup_delay_list[MAX_NODE_ID][2] = {{0,503},{0,617},{0,683},{0,757},{0,787},{0,823},{0,863},{0,911},{0,971},{0,1019},
-			   {0,1069},{0,1153},{0,1193},{0,1223},{0,1297},{0,1361},{0,1399},{0,1439},{0,1481},{0,1531},
-			   {0,1597},{0,1657},{0,1697},{0,1733},{0,1801}};
 
 void setup(){
 	//Arduino------------------------------
@@ -108,14 +105,4 @@ boolean isChannelClear(){
         //Serial.print("carrier_detect_reg_value = ");
         //Serial.println(carrier_detect_reg_value, BIN);
         return carrier_detect_reg_value == 0;
-}
-
-int generateWakeUpDelay(int sensornode_id){
-	for(int i=0; i< MAX_NODE_ID; i++){
-		if(wakeup_delay_list[i][0] == 0){
-			wakeup_delay_list[i][0] = sensornode_id;
-			return wakeup_delay_list[i][1];
-		}
-	}
-	return -1;
 }
