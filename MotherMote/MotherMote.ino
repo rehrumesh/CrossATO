@@ -22,7 +22,7 @@
 // #include <MirfHardwareSpi85Driver.h>
 // //--------------------------------------------------
 
-#define MAX_NODE_ID 25
+#define MAX_NODES 3
 #define MOTHERMOTE_ID 1
 
 //----------------
@@ -33,7 +33,7 @@
 //----------------
 
 struct packet_struct{
-	byte id;
+	byte id;	// mothermote id range = 1-20,  sensor node id range = 30+
 	byte packet_type;
 	int data;
 };
@@ -61,7 +61,21 @@ void setup(){
 }
 
 void loop(){
-	
+	//initial sensor node set 
+	packet.data = MAX_NODES;
+	while(true){
+		unsigned long cycle_start_time = millis();
+		//create broadcast packet 
+		//broadcast 
+		//listen till timer expire
+		//
+		
+		packet.packet_type = 0;
+		packet.id = MOTHERMOTE_ID;
+		
+		
+
+	}
 }
 
 // 1: clear

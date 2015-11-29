@@ -20,7 +20,7 @@
 //----------------
 
 struct packet_struct{
-	byte id;
+	byte id;	// mothermote id range = 1-20,  sensor node id range = 30+
 	byte packet_type;
 	int data;
 };
