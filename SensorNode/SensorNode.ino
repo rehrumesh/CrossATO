@@ -13,10 +13,13 @@
 // //--------------------------------------------------
 
 #define MAX_NODE_ID 25
-#define SENSOR_ID 24
+#define SENSOR_ID 31
+#define ASSIGNED_MOTHERMOTE_ID 1
 //----------------
 //packet_type = 0   =>  mothermote broadcast
-//packet_type = 1   => 	init_request
+//packet_type = 1   => 	new node request
+//packet_type = 2   =>  new node reply
+//packet_type = 3   =>  data
 //----------------
 
 struct packet_struct{
@@ -25,7 +28,13 @@ struct packet_struct{
 	int data;
 };
 
+struct decodedData{
+	int cycleTime;
+	int nodes;
+};
+
 static packet_struct packet;
+static packet_struct broadcast_packet;
 
 void setup(){
 	//Arduino------------------------------
@@ -39,8 +48,7 @@ void setup(){
 	// Mirf.spi = &MirfHardwareSpi85;		
 	// //-------------------------------------
 	
-	Mirf.init();
-	Mirf.setTADDR((byte *) "cross");
+	Mirf.init();	
 	Mirf.payload = sizeof(packet_struct);
 	Mirf.channel = 90;
 	Mirf.config();	
@@ -48,7 +56,15 @@ void setup(){
 }
 
 void loop(){
-		
+	unsinged long rtt_delay = 0;
+	Mirf.setRADDR((byte *) "cross");
+	while(Mirf.dataReady());
+	if(Mirf.dataReady()){
+		Mirf.getData((byte *) &broadcast_packet);
+		if(broadcast_packet.packet_type == 0 && broadcast_packet.id == ASSIGNED_MOTHERMOTE_ID){
+
+		}
+	}
 }
 
 // 1: clear
@@ -64,3 +80,16 @@ boolean isChannelClear(){
         return carrier_detect_reg_value == 0;
 }
 
+
+int beacondataEncoder(int cycleTime, int numberOfNodes){
+	int ans;
+	ans = cycleTime<<5;
+	return ans + numberOfNodes;	
+}
+
+void beacondataDecoder(int data, struct decodedData *temp){
+	int a = data % B100000;
+	int b = (data - a)>>5;
+        temp->nodes = a;
+        temp->cycleTime = b;
+}

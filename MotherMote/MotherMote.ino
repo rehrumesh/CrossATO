@@ -26,10 +26,10 @@
 #define MOTHERMOTE_ID 1
 
 //----------------
-//packet_type = 0   =>  mothermote beacon broadcast
-//packet_type = 1   => 	init_request
-//packet_type = 2   =>  init_reply
-//packet_type = 3   =>  data_packet
+//packet_type = 0   =>  mothermote broadcast
+//packet_type = 1   => 	new node request
+//packet_type = 2   =>  new node reply
+//packet_type = 3   =>  data
 //----------------
 
 struct packet_struct{
@@ -39,6 +39,7 @@ struct packet_struct{
 };
 
 static packet_struct packet;
+static packet_struct reply;
 
 void setup(){
 	//Arduino------------------------------
@@ -54,7 +55,7 @@ void setup(){
 	// //-------------------------------------
 	
 	Mirf.init();
-	Mirf.setRADDR((byte *) "cross");
+	//Mirf.setRADDR((byte *) "cross");
 	Mirf.payload = sizeof(packet_struct);
 	Mirf.channel = 90;
 	Mirf.config();	
@@ -68,13 +69,21 @@ void loop(){
 		//create broadcast packet 
 		//broadcast 
 		//listen till timer expire
-		//
+		//total cycle time = 20sec
 		
 		packet.packet_type = 0;
 		packet.id = MOTHERMOTE_ID;
 		
-		
+		Mirf.setTADDR((byte *) "cross");
+		Mirf.send((byte *) &packet);
+		while(Mirf.isSending()){};
 
+		Mirf.setRADDR((byte *) "cross");
+		while(millis() - cycle_start_time >20000){
+			if(Mirf.dataReady()){
+				Mirf.getData((byte *) &reply);
+			}
+		}
 	}
 }
 
@@ -89,4 +98,18 @@ boolean isChannelClear(){
         //Serial.print("carrier_detect_reg_value = ");
         //Serial.println(carrier_detect_reg_value, BIN);
         return carrier_detect_reg_value == 0;
+}
+
+
+int beacondataEncoder(int cycleTime, int numberOfNodes){
+	int ans;
+	ans = cycleTime<<5;
+	return ans + numberOfNodes;	
+}
+
+void beacondataDecoder(int data){
+	int a = data % B100000;
+	int b = (data - a)>>5;
+        Serial.println(a);
+        Serial.println(b);
 }
