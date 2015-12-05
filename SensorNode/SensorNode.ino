@@ -13,8 +13,11 @@
 // //--------------------------------------------------
 
 #define MAX_NODE_ID 25
-#define SENSOR_ID 31
+#define SENSOR_ID 0
 #define ASSIGNED_MOTHERMOTE_ID 1
+#define CYCLE_TIME_LENGTH 9000
+#define FULL_CYCLE_TIME 10000
+
 //----------------
 //packet_type = 0   =>  mothermote broadcast
 //packet_type = 1   => 	new node request
@@ -23,18 +26,21 @@
 //----------------
 
 struct packet_struct{
-	byte id;	// mothermote id range = 1-20,  sensor node id range = 30+
+	byte sender_id;	
+	byte receiver_id;
 	byte packet_type;
 	int data;
 };
 
 struct decodedData{
-	int cycleTime;
+	int windowTime;
 	int nodes;
 };
 
 static packet_struct packet;
 static packet_struct broadcast_packet;
+
+
 
 void setup(){
 	//Arduino------------------------------
@@ -56,12 +62,38 @@ void setup(){
 }
 
 void loop(){
-	unsinged long rtt_delay = 0;
+	static boolean isInitialized = true;
+	//unsigned long rtt_delay = 0;
+
+	//generate data packet
+	packet.sender_id = SENSOR_ID;
+	packet.receiver_id = ASSIGNED_MOTHERMOTE_ID;
+	packet.packet_type = 3;
+	packet.data = 33;
+
 	Mirf.setRADDR((byte *) "cross");
 	while(Mirf.dataReady());
 	if(Mirf.dataReady()){
 		Mirf.getData((byte *) &broadcast_packet);
-		if(broadcast_packet.packet_type == 0 && broadcast_packet.id == ASSIGNED_MOTHERMOTE_ID){
+		if(broadcast_packet.packet_type == 0 && broadcast_packet.sender_id == ASSIGNED_MOTHERMOTE_ID){
+			struct decodedData tmpDecodedData;
+			beacondataDecoder(broadcast_packet.data, &tmpDecodedData);
+			//calculate frame size
+			int frameLength = tmpDecodedData.windowTime/tmpDecodedData.nodes;
+			int numberOfWindows = CYCLE_TIME_LENGTH / tmpDecodedData.windowTime;
+			
+			delay(frameLength*SENSOR_ID);
+			Mirf.setTADDR((byte *) "cross");
+			for(int i = 0; i<numberOfWindows; i++){
+				unsigned long tmpTime = millis();
+				//turn on the radio
+				Mirf.send((byte *) &packet);
+				while(Mirf.isSending()){};
+
+				//turn off the radio
+				while(millis() - tmpTime < frameLength){}				
+				delay(tmpDecodedData.windowTime - frameLength);
+			}
 
 		}
 	}
@@ -81,9 +113,9 @@ boolean isChannelClear(){
 }
 
 
-int beacondataEncoder(int cycleTime, int numberOfNodes){
+int beacondataEncoder(int windowTime, int numberOfNodes){
 	int ans;
-	ans = cycleTime<<5;
+	ans = windowTime<<5;
 	return ans + numberOfNodes;	
 }
 
@@ -91,5 +123,5 @@ void beacondataDecoder(int data, struct decodedData *temp){
 	int a = data % B100000;
 	int b = (data - a)>>5;
         temp->nodes = a;
-        temp->cycleTime = b;
+        temp->windowTime = b;
 }

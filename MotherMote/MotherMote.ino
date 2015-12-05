@@ -24,6 +24,8 @@
 
 #define MAX_NODES 3
 #define MOTHERMOTE_ID 1
+#define CYCLE_TIME_LENGTH 9000
+#define FULL_CYCLE_TIME 10000
 
 //----------------
 //packet_type = 0   =>  mothermote broadcast
@@ -33,9 +35,15 @@
 //----------------
 
 struct packet_struct{
-	byte id;	// mothermote id range = 1-20,  sensor node id range = 30+
+	byte sender_id;	// mothermote id range = 1-20,  sensor node id range = 30+
+	byte receiver_id;
 	byte packet_type;
 	int data;
+};
+
+struct decodedData{
+	int cycleTime;
+	int nodes;
 };
 
 static packet_struct packet;
@@ -63,25 +71,44 @@ void setup(){
 
 void loop(){
 	//initial sensor node set 
-	packet.data = MAX_NODES;
+	int current_nodes = MAX_NODES;
 	while(true){
 		unsigned long cycle_start_time = millis();
 		//create broadcast packet 
 		//broadcast 
 		//listen till timer expire
-		//total cycle time = 20sec
+		//total cycle time = 9sec
+		//new node time = 1 seconds
+		//
 		
 		packet.packet_type = 0;
-		packet.id = MOTHERMOTE_ID;
+		packet.sender_id = MOTHERMOTE_ID;
+		packet.data = beacondataEncoder(CYCLE_TIME_LENGTH, current_nodes);
+		packet.receiver_id = 0;
 		
 		Mirf.setTADDR((byte *) "cross");
 		Mirf.send((byte *) &packet);
 		while(Mirf.isSending()){};
 
 		Mirf.setRADDR((byte *) "cross");
-		while(millis() - cycle_start_time >20000){
+		while(millis() - cycle_start_time >CYCLE_TIME_LENGTH){
 			if(Mirf.dataReady()){
 				Mirf.getData((byte *) &reply);
+				if(reply.packet_type == 3 && reply.receiver_id == MOTHERMOTE_ID){	
+					
+					current_nodes = current_nodes + 1;
+				}
+			}
+		}
+
+		//wait for new node registration
+		while(millis() - cycle_start_time >FULL_CYCLE_TIME){	//CYCLE_TIME_LENGTH + 1Second
+			if(Mirf.dataReady()){
+				Mirf.getData((byte *) &reply);
+				if(reply.packet_type == 1 && reply.receiver_id == MOTHERMOTE_ID){	
+					
+					current_nodes = current_nodes + 1;
+				}
 			}
 		}
 	}
@@ -107,9 +134,9 @@ int beacondataEncoder(int cycleTime, int numberOfNodes){
 	return ans + numberOfNodes;	
 }
 
-void beacondataDecoder(int data){
+void beacondataDecoder(int data, struct decodedData *temp){
 	int a = data % B100000;
 	int b = (data - a)>>5;
-        Serial.println(a);
-        Serial.println(b);
+        temp->nodes = a;
+        temp->cycleTime = b;
 }
