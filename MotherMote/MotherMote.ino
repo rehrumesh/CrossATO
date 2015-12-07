@@ -23,9 +23,9 @@
 // //--------------------------------------------------
 
 #define MAX_NODES 3
-#define MOTHERMOTE_ID 1
-#define CYCLE_TIME_LENGTH 9000
-#define FULL_CYCLE_TIME 10000
+#define MOTHERMOTE_ID 0
+#define CYCLE_TIME_LENGTH 4000
+#define FULL_CYCLE_TIME 5000
 
 //----------------
 //packet_type = 0   =>  mothermote broadcast
@@ -83,7 +83,7 @@ void loop(){
 		
 		packet.packet_type = 0;
 		packet.sender_id = MOTHERMOTE_ID;
-		packet.data = beacondataEncoder(CYCLE_TIME_LENGTH, current_nodes);
+		packet.data = beacondataEncoder(600, current_nodes);
 		packet.receiver_id = 0;
 		
 		Serial.println("Sending beacon packet.");
@@ -120,7 +120,7 @@ void loop(){
 			}
 		}
 		Serial.println("End of total cycle");
-                delay(500);
+                delay(1000);
 	}
 }
 
