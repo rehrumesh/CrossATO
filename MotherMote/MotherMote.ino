@@ -86,23 +86,31 @@ void loop(){
 		packet.data = beacondataEncoder(CYCLE_TIME_LENGTH, current_nodes);
 		packet.receiver_id = 0;
 		
+		Serial.println("Sending beacon packet.");
 		Mirf.setTADDR((byte *) "cross");
 		Mirf.send((byte *) &packet);
 		while(Mirf.isSending()){};
 
 		Mirf.setRADDR((byte *) "cross");
-		while(millis() - cycle_start_time >CYCLE_TIME_LENGTH){
+		Serial.println("***");
+		Serial.println(millis());
+		Serial.println(cycle_start_time);
+		while(millis() - cycle_start_time <CYCLE_TIME_LENGTH){
 			if(Mirf.dataReady()){
 				Mirf.getData((byte *) &reply);
 				if(reply.packet_type == 3 && reply.receiver_id == MOTHERMOTE_ID){	
-					
-					current_nodes = current_nodes + 1;
+					//Display data
+					Serial.println("data received:----");
+					Serial.print("sender_id : ");
+					Serial.println(reply.sender_id);
+					Serial.print("data : ");
+					Serial.println(reply.data);
 				}
 			}
 		}
-
+		Serial.println("End of data cycle.");
 		//wait for new node registration
-		while(millis() - cycle_start_time >FULL_CYCLE_TIME){	//CYCLE_TIME_LENGTH + 1Second
+		while(millis() - cycle_start_time <FULL_CYCLE_TIME){	//CYCLE_TIME_LENGTH + 1Second
 			if(Mirf.dataReady()){
 				Mirf.getData((byte *) &reply);
 				if(reply.packet_type == 1 && reply.receiver_id == MOTHERMOTE_ID){	
@@ -111,6 +119,8 @@ void loop(){
 				}
 			}
 		}
+		Serial.println("End of total cycle");
+                delay(500);
 	}
 }
 

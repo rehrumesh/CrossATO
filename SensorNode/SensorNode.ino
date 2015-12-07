@@ -15,8 +15,8 @@
 #define MAX_NODE_ID 25
 #define SENSOR_ID 0
 #define ASSIGNED_MOTHERMOTE_ID 1
-#define CYCLE_TIME_LENGTH 9000
-#define FULL_CYCLE_TIME 10000
+#define CYCLE_TIME_LENGTH 4000
+#define FULL_CYCLE_TIME 5000
 
 //----------------
 //packet_type = 0   =>  mothermote broadcast
@@ -63,24 +63,30 @@ void setup(){
 
 void loop(){
 	static boolean isInitialized = true;
+        Mirf.setRADDR((byte *) "cross");
 	//unsigned long rtt_delay = 0;
-
+	Serial.println("Started.");
 	//generate data packet
 	packet.sender_id = SENSOR_ID;
 	packet.receiver_id = ASSIGNED_MOTHERMOTE_ID;
 	packet.packet_type = 3;
 	packet.data = 33;
 
-	Mirf.setRADDR((byte *) "cross");
-	while(Mirf.dataReady());
+	
+	while(!Mirf.dataReady());
 	if(Mirf.dataReady()){
 		Mirf.getData((byte *) &broadcast_packet);
+		Serial.println("Packet received");
 		if(broadcast_packet.packet_type == 0 && broadcast_packet.sender_id == ASSIGNED_MOTHERMOTE_ID){
 			struct decodedData tmpDecodedData;
 			beacondataDecoder(broadcast_packet.data, &tmpDecodedData);
 			//calculate frame size
 			int frameLength = tmpDecodedData.windowTime/tmpDecodedData.nodes;
 			int numberOfWindows = CYCLE_TIME_LENGTH / tmpDecodedData.windowTime;
+
+                        Serial.println("window time");
+                        Serial.println(tmpDecodedData.windowTime);
+                        Serial.println(tmpDecodedData.nodes);
 			
 			delay(frameLength*SENSOR_ID);
 			Mirf.setTADDR((byte *) "cross");
@@ -89,10 +95,12 @@ void loop(){
 				//turn on the radio
 				Mirf.send((byte *) &packet);
 				while(Mirf.isSending()){};
+				Serial.println("Data packet sent");
 
 				//turn off the radio
 				while(millis() - tmpTime < frameLength){}				
 				delay(tmpDecodedData.windowTime - frameLength);
+				//test
 			}
 
 		}
