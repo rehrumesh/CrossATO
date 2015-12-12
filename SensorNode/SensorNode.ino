@@ -1,24 +1,24 @@
 
-// Arduino --------------------------------------------
-//#include <SPI.h>
-//#include <Mirf.h>
-//#include <nRF24L01.h>
-//#include <MirfHardwareSpiDriver.h>
+// // Arduino --------------------------------------------
+// #include <SPI.h>
+// #include <Mirf.h>
+// #include <nRF24L01.h>
+// #include <MirfHardwareSpiDriver.h>
 //-----------------------------------------------------
 
 
-// // ATtiny85-----------------------------------------
- #include <SPI85.h>
- #include <Mirf.h>
- #include <nRF24L01.h>
- #include <MirfHardwareSpi85Driver.h>
+// ATtiny85-----------------------------------------
+#include <SPI85.h>
+#include <Mirf.h>
+#include <nRF24L01.h>
+#include <MirfHardwareSpi85Driver.h>
 // //--------------------------------------------------
 
 #define MAX_NODE_ID 25
 #define SENSOR_ID 0
 #define ASSIGNED_MOTHERMOTE_ID 1
-#define CYCLE_TIME_LENGTH 4000
-#define FULL_CYCLE_TIME 5000
+#define CYCLE_TIME_LENGTH 9000
+#define FULL_CYCLE_TIME 10000
 
 //----------------
 //packet_type = 0   =>  mothermote broadcast
@@ -45,10 +45,10 @@ static packet_struct broadcast_packet;
 
 
 void setup(){
-	//Arduino------------------------------
+	///Arduino------------------------------
 	//Mirf.spi = &MirfHardwareSpi;
 	//Serial.begin(9600);
-	//
+	////
 
 	// //ATtiny85-----------------------------
 	 Mirf.cePin = PB4;
@@ -65,48 +65,58 @@ void setup(){
 
 void loop(){
 	static boolean isInitialized = true;
-        Mirf.setRADDR((byte *) "cross");
-	//unsigned long rtt_delay = 0;
-	//Serial.println("Started.");
-	//generate data packet
-	packet.sender_id = SENSOR_ID;
-	packet.receiver_id = ASSIGNED_MOTHERMOTE_ID;
-	packet.packet_type = 3;
-	packet.data = 33;
+        static int datavalue = 1;
 
-	
-	while(!Mirf.dataReady());
-	if(Mirf.dataReady()){
-		Mirf.getData((byte *) &broadcast_packet);
-		//Serial.println("Packet received");
-		if(broadcast_packet.packet_type == 0 && broadcast_packet.sender_id == ASSIGNED_MOTHERMOTE_ID){
-			struct decodedData tmpDecodedData;
-			beacondataDecoder(broadcast_packet.data, &tmpDecodedData);
-			//calculate frame size
-			int frameLength = tmpDecodedData.windowTime/tmpDecodedData.nodes;
-			int numberOfWindows = CYCLE_TIME_LENGTH / tmpDecodedData.windowTime;
+        if(datavalue < 101){
+	        Mirf.setRADDR((byte *) "cross");
+		//unsigned long rtt_delay = 0;
+		//Serial.println("Started.");
+		//generate data packet
+		packet.sender_id = SENSOR_ID;
+		packet.receiver_id = ASSIGNED_MOTHERMOTE_ID;
+		packet.packet_type = 3;
+		//packet.data = 33;
 
-                        //Serial.println("window time");
-                       // Serial.println(tmpDecodedData.windowTime);
-                        //Serial.println(tmpDecodedData.nodes);
-			
-			delay(frameLength*SENSOR_ID);
-			Mirf.setTADDR((byte *) "cross");
-			for(int i = 0; i<numberOfWindows; i++){
-				unsigned long tmpTime = millis();
-				//turn on the radio
-				Mirf.send((byte *) &packet);
-				while(Mirf.isSending()){};
-				//Serial.println("Data packet sent");
+		
+		while(!Mirf.dataReady());
+		if(Mirf.dataReady()){
+			Mirf.getData((byte *) &broadcast_packet);
+			//Serial.println("Packet received");
+			if(broadcast_packet.packet_type == 0 && broadcast_packet.sender_id == ASSIGNED_MOTHERMOTE_ID){
+				struct decodedData tmpDecodedData;
+				beacondataDecoder(broadcast_packet.data, &tmpDecodedData);
+				//calculate frame size
+				int frameLength = tmpDecodedData.windowTime/tmpDecodedData.nodes;
+				int numberOfWindows = CYCLE_TIME_LENGTH / tmpDecodedData.windowTime;
 
-				//turn off the radio
-				while(millis() - tmpTime < frameLength){}				
-				delay(tmpDecodedData.windowTime - frameLength);
-				//test
+	                        //Serial.println("window time");
+	                       // Serial.println(tmpDecodedData.windowTime);
+	                        //Serial.println(tmpDecodedData.nodes);
+				
+				delay(frameLength*SENSOR_ID);
+				Mirf.setTADDR((byte *) "cross");
+				for(int i = 0; i<numberOfWindows; i++){
+					unsigned long tmpTime = millis();
+					//turn on the radio
+	                                packet.data = datavalue;
+	                                if(datavalue > 100){
+	                                	break;
+	                                }
+					Mirf.send((byte *) &packet);
+					while(Mirf.isSending()){};
+					//Serial.println("Data packet sent");
+	                                datavalue = datavalue +1;
+
+					//turn off the radio
+					while(millis() - tmpTime < frameLength){}				
+					delay(tmpDecodedData.windowTime - frameLength);
+					//test
+				}
+
 			}
-
-		}
-	}
+		}	
+        }
+        
 }
 
 // 1: clear

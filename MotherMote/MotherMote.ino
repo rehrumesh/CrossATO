@@ -22,10 +22,12 @@
 // #include <MirfHardwareSpi85Driver.h>
 // //--------------------------------------------------
 
-#define MAX_NODES 3
-#define MOTHERMOTE_ID 0
-#define CYCLE_TIME_LENGTH 4000
-#define FULL_CYCLE_TIME 5000
+#define MAX_NODES 1
+#define START_DELAY 10000
+#define WINDOW_SIZE 3000
+#define MOTHERMOTE_ID 1
+#define CYCLE_TIME_LENGTH 9000
+#define FULL_CYCLE_TIME 10000
 
 //----------------
 //packet_type = 0   =>  mothermote broadcast
@@ -71,7 +73,10 @@ void setup(){
 
 void loop(){
 	//initial sensor node set 
+delay(START_DELAY);
 	int current_nodes = MAX_NODES;
+        static unsigned long lastPacketTime = millis();
+        static unsigned long newPacketTime = millis();
 	while(true){
 		unsigned long cycle_start_time = millis();
 		//create broadcast packet 
@@ -83,7 +88,7 @@ void loop(){
 		
 		packet.packet_type = 0;
 		packet.sender_id = MOTHERMOTE_ID;
-		packet.data = beacondataEncoder(600, current_nodes);
+		packet.data = beacondataEncoder(WINDOW_SIZE, current_nodes);
 		packet.receiver_id = 0;
 		
 		Serial.println("Sending beacon packet.");
@@ -93,14 +98,22 @@ void loop(){
 
 		Mirf.setRADDR((byte *) "cross");
 		Serial.println("***");
-		Serial.println(millis());
+		Serial.print("Cycle started at : ");
 		Serial.println(cycle_start_time);
 		while(millis() - cycle_start_time <CYCLE_TIME_LENGTH){
 			if(Mirf.dataReady()){
 				Mirf.getData((byte *) &reply);
-				if(reply.packet_type == 3 && reply.receiver_id == MOTHERMOTE_ID){	
+                      
+                                
+				if(reply.packet_type == 3 && reply.receiver_id == MOTHERMOTE_ID){
+                                        lastPacketTime = newPacketTime;
+                                        newPacketTime = millis();
+                                        Serial.print("Time difference : ");
+                                        Serial.println(newPacketTime-lastPacketTime);	
 					//Display data
 					Serial.println("data received:----");
+                                        Serial.print("Received time : ");
+                                        Serial.println(millis());
 					Serial.print("sender_id : ");
 					Serial.println(reply.sender_id);
 					Serial.print("data : ");
@@ -108,7 +121,9 @@ void loop(){
 				}
 			}
 		}
-		Serial.println("End of data cycle.");
+                Serial.print("Data cycle ended at : ");
+		Serial.println(millis());
+                Serial.println("End of data cycle.");
 		//wait for new node registration
 		while(millis() - cycle_start_time <FULL_CYCLE_TIME){	//CYCLE_TIME_LENGTH + 1Second
 			if(Mirf.dataReady()){
